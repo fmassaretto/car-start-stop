@@ -19,19 +19,26 @@
     * TARGET_RSSI - Distancia para desbloqueio do carro                  -- Linha 92
     * Intervalo de busca do Bluetooth                                    -- Linha 512
 */
-#define BLYNK_TEMPLATE_ID "123"
-#define BLYNK_TEMPLATE_NAME "123"
+/*************************************************************
+
+  This is a simple demo of sending and receiving some data.
+  Be sure to check out other examples!
+ *************************************************************/
+
+/* Fill-in information from Blynk Device Info here */
+#define BLYNK_TEMPLATE_ID ""
+#define BLYNK_TEMPLATE_NAME ""
+#define BLYNK_AUTH_TOKEN ""
 
 #include <BlynkSimpleEsp32_BT.h>
 #include <RF_HT6P20.h>
 #include <SimpleTimer.h> 
 
-
 #define RELAY_ACC 32
 #define RELAY_IG1 33
 #define RELAY_IG2 25
 #define RELAY_MOTOR_ARRANQUE 26
-#define RELAY_ALARME_GPS 56     //PROXIMO VIDEO - RASTREADOR
+#define RELAY_ALARME_GPS 21     //PROXIMO VIDEO - RASTREADOR
 
 #define RELAY_TRAVA 13
 #define RELAY_DESTRAVA 12
@@ -94,7 +101,7 @@ SimpleTimer timer;
 
 //BLUETOOTH POR PRESENÇA (LOW ENERGY)
 #include <BLEDevice.h>
-#define ADDRESS "INFORME O MAC ADDRESS DO SEU BLUETOOTH" 
+#define ADDRESS ""
 #define TARGET_RSSI -70 //DISTANCIA PARA DESBLOQUEIO POR PRESENÇA
 #define MAX_MISSING_TIME 21000 //TEMPO PARA BLOQUEIO
 BLEScan* pBLEScan; 
@@ -104,8 +111,14 @@ int rssi = 0;
 int controleBluetooth = 0;
 //
 
+//HELPER FUNCTIONS
+void terminalBodyMessagePrintln(std::vector<String> messagesList);
+void terminalHeaderTitle();
+//
+
 //FUNÇÕES CARRO
 void ligaCarro();
+void terminalHeaderTitle();
 void desligaCarro();
 void ligaAcc();
 void ligaPosChave();
@@ -121,13 +134,7 @@ void abrirVidros();
 
 void ligaCarro(){
   //LIGA O CARRO
-  terminal.clear();
-  terminal.println("----------------------------------------------------");
-  terminal.println("I D E I A S   M A K E R       -                 2021");
-  terminal.println("----------------------------------------------------");
-  terminal.println("");
-  terminal.println("");  
-  terminal.println("");
+  terminalHeaderTitle();
 
   digitalWrite(RELAY_ACC, LOW);
   delay(1000);
@@ -137,36 +144,36 @@ void ligaCarro(){
   digitalWrite(RELAY_MOTOR_ARRANQUE, LOW);
   delay(700);    
   digitalWrite(RELAY_MOTOR_ARRANQUE, HIGH);  
+
   Serial.println("OK");
-  terminal.println("                C A R R O - L I G A D O           ");
   ledMotor.on();
-  terminal.flush();
+
+  terminalBodyMessagePrintln({"                C A R R O - L I G A D O           "});
+
   STATUS_PARTIDA_REMOTA = 1;
   STATUS_BOTAO_START_STOP = 3;
   STATUS_CARRO = 1;
-  delay(1000);  
+
+  delay(1000);
 }
 
 void desligaCarro(){
   //DESLIGA O CARRO
-  terminal.clear();
-  terminal.println("----------------------------------------------------");
-  terminal.println("I D E I A S   M A K E R       -                 2021");
-  terminal.println("----------------------------------------------------");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("            C A R R O - D E S L I G A D O           ");
+  terminalHeaderTitle();
+
   ledMotor.off();
-  terminal.flush();
+
+  terminalBodyMessagePrintln({"            C A R R O - D E S L I G A D O           "});
+
   //Desliga ACC e Ignição
   digitalWrite(RELAY_ACC, HIGH);
   digitalWrite(RELAY_IG1, HIGH);
   digitalWrite(RELAY_IG2, HIGH);
+
   STATUS_BOTAO_START_STOP = 0;
   STATUS_PARTIDA_REMOTA = 0;
   STATUS_CARRO = 0;
+
   //DESLIGA TODOS OS RELÉS
   delay(3000);
   Serial.println("OK");
@@ -207,18 +214,13 @@ void destravaCarro(){
   //PORTAS ABERTAS
   //PRIMEIRO DESLIGA A BUZINA
   digitalWrite(RELAY_BUZINA, HIGH); 
-  terminal.clear();
-  terminal.println("----------------------------------------------------");
-  terminal.println("I D E I A S   M A K E R       -                 2021");
-  terminal.println("----------------------------------------------------");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("              C A R R O - A B E R T O      ");
+  terminalHeaderTitle();
+
   ledFechado.off();
   ledAberto.on();
-  terminal.flush();
+
+  terminalBodyMessagePrintln({"              C A R R O - A B E R T O      "});
+
   delay(200);
   digitalWrite(RELAY_PISCA_ALERTA, LOW);
   digitalWrite(RELAY_DESTRAVA, LOW);
@@ -228,7 +230,8 @@ void destravaCarro(){
   delay(300);
   digitalWrite(RELAY_PISCA_ALERTA, LOW);
   delay(300);
-  digitalWrite(RELAY_PISCA_ALERTA, HIGH);     
+  digitalWrite(RELAY_PISCA_ALERTA, HIGH);
+
   controleBluetooth = 1;
   STATUS_ALARME = 1;
 }
@@ -246,36 +249,35 @@ void travaCarro(){
     digitalWrite(RELAY_PISCA_ALERTA, LOW); delay(300);
     digitalWrite(RELAY_PISCA_ALERTA, HIGH);delay(200);
     Serial.println("Alguma porta está aberta!");
+
+    return;
   }
-  else{
-    //PORTAS FECHADAS
-    //PRIMEIRO DESLIGA A BUZINA
-    digitalWrite(RELAY_BUZINA, HIGH); 
-    terminal.clear();
-    terminal.println("----------------------------------------------------");
-    terminal.println("I D E I A S   M A K E R       -                 2021");
-    terminal.println("----------------------------------------------------");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("              C A R R O - F E C H A D O       ");
-    ledAberto.off();
-    ledFechado.on();
-    terminal.flush();
-    digitalWrite(RELAY_PISCA_ALERTA, LOW);
-    digitalWrite(RELAY_TRAVA, LOW);
-    delay(300);
-    digitalWrite(RELAY_PISCA_ALERTA, HIGH);  
-    digitalWrite(RELAY_TRAVA, HIGH);  
-    digitalWrite(RELAY_BUZINA, HIGH);  
-    controleBluetooth = 0;
-    STATUS_ALARME = 0;
-    STATUS_PORTA = 0;
-    desligaTudo();
-    CONTROLA_TRAVA_FREIO = 0;
-    controleBluetooth = 0;
-  }
+
+  //PORTAS FECHADAS
+  //PRIMEIRO DESLIGA A BUZINA
+  digitalWrite(RELAY_BUZINA, HIGH); 
+  terminalHeaderTitle();
+
+  ledAberto.off();
+  ledFechado.on();
+
+  terminalBodyMessagePrintln({"              C A R R O - F E C H A D O       "});
+
+  digitalWrite(RELAY_PISCA_ALERTA, LOW);
+  digitalWrite(RELAY_TRAVA, LOW);
+  delay(300);
+  digitalWrite(RELAY_PISCA_ALERTA, HIGH);  
+  digitalWrite(RELAY_TRAVA, HIGH);  
+  digitalWrite(RELAY_BUZINA, HIGH); 
+
+  controleBluetooth = 0;
+  STATUS_ALARME = 0;
+  STATUS_PORTA = 0;
+
+  desligaTudo();
+
+  CONTROLA_TRAVA_FREIO = 0;
+  controleBluetooth = 0;
 }
 
 void encontrarCarro(){
@@ -294,25 +296,22 @@ void encontrarCarro(){
 
 void abrirVidros(){
   digitalWrite(RELAY_BUZINA, HIGH); 
-  terminal.clear();
-  terminal.println("----------------------------------------------------");
-  terminal.println("I D E I A S   M A K E R       -                 2021");
-  terminal.println("----------------------------------------------------");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("");
-  terminal.println("              V I D R O S - A B E R T O S      ");
+  terminalHeaderTitle();
+
   ledFechado.off();
   ledAberto.on();
-  terminal.flush();
-  Serial.println("OK");  
+
+  terminalBodyMessagePrintln({"              V I D R O S - A B E R T O S      "});
+
+  Serial.println("OK");
+
   digitalWrite(RELAY_PISCA_ALERTA, LOW); digitalWrite(RELAY_DESTRAVA, LOW); delay(500);
   digitalWrite(RELAY_PISCA_ALERTA, HIGH); digitalWrite(RELAY_DESTRAVA, HIGH);  delay(500);
   digitalWrite(RELAY_PISCA_ALERTA, LOW); digitalWrite(RELAY_DESTRAVA, LOW); delay(500);
   digitalWrite(RELAY_PISCA_ALERTA, HIGH); digitalWrite(RELAY_DESTRAVA, HIGH);  delay(500);
   digitalWrite(RELAY_PISCA_ALERTA, LOW); digitalWrite(RELAY_DESTRAVA, LOW); delay(500);
   digitalWrite(RELAY_PISCA_ALERTA, HIGH); digitalWrite(RELAY_DESTRAVA, HIGH);  delay(500);
+
   controleBluetooth = 1;
   STATUS_ALARME = 1;
   destravadoControle = 1;  
@@ -404,34 +403,17 @@ BLYNK_WRITE(V3){
 BLYNK_WRITE(V4){
   if (String("DESATIVAR ALARME") == param.asStr()){
     destravaCarro();
-    terminal.clear();
-    terminal.println("----------------------------------------------------");
-    terminal.println("I D E I A S   M A K E R       -                 2021");
-    terminal.println("----------------------------------------------------");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("Alarme desativado permanente até o reinício do ESP");    
+    terminalHeaderTitle();
+    terminalBodyMessagePrintln({"Alarme desativado permanente até o reinício do ESP"});    
     Serial.println("Alarme desativado permanente até o reinício do ESP"); 
     STATUS_ALARME = 10;
   } 
   else if (String("ATIVAR ALARME") == param.asStr()){
     travaCarro();
-    terminal.clear();
-    terminal.println("----------------------------------------------------");
-    terminal.println("I D E I A S   M A K E R       -                 2021");
-    terminal.println("----------------------------------------------------");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("Alarme alarme ativado novamente!");    
+    terminalHeaderTitle();
+    terminalBodyMessagePrintln({"Alarme alarme ativado novamente!"});    
     Serial.println("Alarme alarme ativado novamente!");  
   }
-
-  // Ensure everything is sent
-  terminal.flush();
 }
 
 BLYNK_WRITE(V5){
@@ -453,16 +435,10 @@ BLYNK_WRITE(V6){
 
 BLYNK_CONNECTED() {
     Blynk.syncAll();
-    terminal.clear();
-    terminal.println("----------------------------------------------------");
-    terminal.println("I D E I A S   M A K E R       -                 2021");
-    terminal.println("----------------------------------------------------");
-    terminal.println("");
-    terminal.println("");
-    terminal.println("Bluetooth conectado!");
-    terminal.println("");
-    terminal.println("Seja bem vindo Marcos Rocha!");  
-    terminal.flush();
+
+    terminalHeaderTitle();
+    terminalBodyMessagePrintln({"Bluetooth connected!", "", "Welcome!"});
+
     if(STATUS_CARRO == 0){
         ledMotor.off();
     }
@@ -479,17 +455,36 @@ BLYNK_CONNECTED() {
     }
 }
 
+void terminalHeaderTitle() {
+  terminal.clear();
+  terminal.println("----------------------------------------------------");
+  terminal.println("    CAR START/STOP              -               2025");
+  terminal.println("----------------------------------------------------");
+  terminal.println("");
+  terminal.println("");
+  terminal.println("");
+}
+
+void terminalBodyMessagePrintln(std::vector<String> messagesList) {
+  for(const String& msg : messagesList) {
+    terminal.println(msg);
+  }
+
+  terminal.flush();
+}
+
 void setup(){
     RF.beginRX(pinRF_RX);    
     Serial.begin(9600);
-    Blynk.setDeviceName("Ideias Maker - 2021");  
-    Blynk.begin(auth);
+    // Blynk.setDeviceName("Car StartStop");  
+    Blynk.begin(BLYNK_AUTH_TOKEN);
 
+    Serial.println("Setup pins...");
     pinMode(RELAY_ACC, OUTPUT);
     pinMode(RELAY_IG1, OUTPUT);
     pinMode(RELAY_IG2, OUTPUT);
     pinMode(RELAY_MOTOR_ARRANQUE, OUTPUT);
-
+    
     pinMode(RELAY_TRAVA, OUTPUT);
     pinMode(RELAY_DESTRAVA, OUTPUT);
     pinMode(RELAY_BUZINA, OUTPUT);
@@ -499,12 +494,13 @@ void setup(){
     pinMode(BOTAO_START_STOP, INPUT);
     pinMode(FREIO, INPUT);
     pinMode(PORTA_ABERTA, INPUT);
-     
+    Serial.println("Setup pins done!");
+    
     digitalWrite(RELAY_ACC, HIGH);
     digitalWrite(RELAY_IG1, HIGH);
     digitalWrite(RELAY_IG2, HIGH);
     digitalWrite(RELAY_MOTOR_ARRANQUE, HIGH);
-
+    
     digitalWrite(RELAY_TRAVA, HIGH);
     digitalWrite(RELAY_DESTRAVA, HIGH);
     digitalWrite(RELAY_BUZINA, HIGH);
@@ -516,6 +512,7 @@ void setup(){
     pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
     pBLEScan->setActiveScan(true);
     timer.setInterval(7000L, CheckConnectionBluetooth); //INTERVALO DE BUSCA BLUETOOTH
+    Serial.println("Setup is done!");
 }
 
 void loop(){ 
@@ -555,20 +552,24 @@ void loop(){
         if (STATUS_ALARME == 0){
           Serial.println("ALARME ACIONADO! PORTA ABERTA COM O ALARME BLOQUEADO!");
           terminal.clear();
-          terminal.println("ALARME ACIONADO! PORTA ABERTA COM O ALARME BLOQUEADO");
-          terminal.flush();
+          terminalBodyMessagePrintln({"ALARME ACIONADO! PORTA ABERTA COM O ALARME BLOQUEADO"});
+
           //MUDA O STATUS PARA ALARME ACIONADO - EM CASO DE ABRIR A PORTA COM O ALARME BLOQUEADO.
           STATUS_ALARME = 3;
+
           //AVISA O OUTRO ARDUINO GPS/BOMBA DE COMBUSTIVEL
           digitalWrite(RELAY_ALARME_GPS, LOW);
           delay(300);
           digitalWrite(RELAY_ALARME_GPS, HIGH);
+
           Serial.println("");
           Serial.println("Acionado o ALARME GPS");
           Serial.println("");
+
           //DESLIGA TUDO
           desligaTudo();
         }
+
         if (STATUS_ALARME == 1){
           //Serial.println("");
           //Serial.println("PORTA ABERTA!");
@@ -579,13 +580,13 @@ void loop(){
           lastFoundTime = millis();
           now = millis();
         }
+    } else {
+      STATUS_PORTA_ABERTA = 0;
     }
-    else STATUS_PORTA_ABERTA = 0;
     //
 
     //FREIO
     if(VALOR_FREIO){
-
         if(STATUS_PARTIDA_REMOTA == 1 && CONTROLA_TRAVA_FREIO == 0 && STATUS_ALARME == 1){
           digitalWrite(RELAY_TRAVA, LOW);
           delay(100);
@@ -593,19 +594,23 @@ void loop(){
           CONTROLA_TRAVA_FREIO = 1;          
         }
       
-        STATUS_FREIO = 1;   
+        STATUS_FREIO = 1; 
+
         if (STATUS_ALARME == 0){
           Serial.println("ALARME ACIONADO! FREIO PRESSIONADO COM O ALARME BLOQUEADO!");
           terminal.clear();
-          terminal.println("ALARME ACIONADO! FREIO PRESSIONADO COM O ALARME BLOQUEADO!");
-          terminal.flush();
+          terminalBodyMessagePrintln({"ALARME ACIONADO! FREIO PRESSIONADO COM O ALARME BLOQUEADO!"});
+
           //MUDA O STATUS PARA ALARME ACIONADO - EM CASO DE PRESSIONAR O FREIO COM O ALARME BLOQUEADO.
           STATUS_ALARME = 3;
+
           //AVISA O OUTRO ARDUINO GPS/BOMBA DE COMBUSTIVEL
           digitalWrite(RELAY_ALARME_GPS, LOW);
           delay(300);
           digitalWrite(RELAY_ALARME_GPS, HIGH);
+
           Serial.println("");
+
           //DESLIGA TUDO
           desligaTudo();
         }
@@ -614,8 +619,7 @@ void loop(){
           //Serial.println("FREIO PRESSIONADO!");
           //Serial.println("");
         //}
-    }
-    else{
+    } else {
         STATUS_FREIO = 0; 
     }
     //
@@ -625,15 +629,18 @@ void loop(){
       if (STATUS_ALARME == 0){
             Serial.println("ALARME ACIONADO! BOTÃO PRESSIONADO COM O ALARME BLOQUEADO!");
             terminal.clear();
-            terminal.println("ALARME ACIONADO! BOTÃO PRESSIONADO COM O ALARME BLOQUEADO!");
-            terminal.flush();
+            terminalBodyMessagePrintln({"ALARME ACIONADO! BOTÃO PRESSIONADO COM O ALARME BLOQUEADO!"});
+
             //MUDA O STATUS PARA ALARME ACIONADO - EM CASO DE PRESSIONAR O BOTÃO COM O ALARME BLOQUEADO.
             STATUS_ALARME = 3;
+
             //AVISA O OUTRO ARDUINO GPS/BOMBA DE COMBUSTIVEL
             digitalWrite(RELAY_ALARME_GPS, LOW);
             delay(300);
             digitalWrite(RELAY_ALARME_GPS, HIGH);
+
             Serial.println("");
+
             //DESLIGA TUDO
             desligaTudo();
           }
